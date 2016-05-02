@@ -5,7 +5,7 @@ zeroGld = g.parse("3C$2.C$.C!")
 gld = g.parse("3B$B3A$.A3B$2.A2B$3.2B!", -1, -1)
 validationgld = g.parse("$2.4B$.5B$.3A2B$3BAB$2BA$2B!", -3, -3)
 
-glds = [gld, g.transform(gld, 0,0, -1, 0, 0, 1),  g.transform(gld, 0,0, 1, 0, 0, -1), g.transform(gld, 0,0, -1, 0, 0, -1)]
+glds = [gld, g.transform(gld, 0, 0, -1, 0, 0, 1),  g.transform(gld, 0, 0, 1, 0, 0, -1), g.transform(gld, 0, 0, -1, 0, 0, -1)]
 
 def ValidatePresence (pat, xin, yin):	
 	for i in xrange(2, len(pat), 3):
@@ -125,13 +125,42 @@ class Conduit:
 		self.dataset = dataset
 		self.inputgen = inputgen
 		self.stabilizationgen = stabilizationgen
+	
+	def DState(self, instate, outstate):
+		if instate == 0:
+			if outstate == 0:
+				return (-1, 1, 1)
+			if outstate == 1:
+				return (-1, 1, 0)
+			if outstate == 2:
+				return (-1, 1, 3)
+			if outstate == 3:
+				return (-1, 1, 2)
+		
+		if instate == 1:
+			return (1, 1, outstate)
+		
+		if instate == 2:
+			return (-1, -1, 3 - outstate)
+		
+		if instate == 3:
+			if outstate == 0:
+				return (1, -1, 2)
+			if outstate == 1:
+				return (1, -1, 3)
+			if outstate == 2:
+				return (1, -1, 0)
+			if outstate == 3:
+				return (1, -1, 1)
 		
 	def ReturnGliders(self, x, y, state, gen):
 		result = []
 		
-		if state == 1:
-			for x1, y1, i1, gen1 in self.outputs:
-				result.append(x + x1, y + y1, i1, gen + gen1)
+		for x1, y1, i1, gen1 in self.outputs:
+			mx, my, mstate = self.DState(state, i1)
+			result.append((x + mx * x1, y + my * y1, mstate, gen + gen1))
+
+		return result
 		
 gliders = FindGliders()
 x, y, = gliders[0]
@@ -139,8 +168,11 @@ data = FindAdjescent(x, y)
 g.new("")
 PlaceConduit(data)
 inx, iny, ingen= IterateToInput(x, y)
-g.show(str(FindOutputs(inx, iny, ingen)))
+outputs = FindOutputs(inx, iny, ingen)
 
+con = Conduit(outputs, data, ingen, int(g.getgen()) - ingen)
+
+g.show(str(con.ReturnGliders(0, 0, 0, 0)))
 
 #g.show(str(FindAdjescent(x, y)))
 #def ReadConduits():
